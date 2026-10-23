@@ -190,8 +190,12 @@ namespace BongoCatCustomSkins {
 		private Vector2 _defaultHatAnchoredPos;
 		private Vector3 _defaultHatScale = Vector3.one;
 		private bool _hasDefaultBongosTransform = false;
-		private Vector2 _defaultBongosAnchoredPos;
-		private Vector3 _defaultBongosScale = Vector3.one;
+		private Vector2 _defBongosLBPos;
+		private Vector2 _defBongosLFPos;
+		private Vector2 _defBongosRPos;
+		private Vector3 _defBongosLBScale = Vector3.one;
+		private Vector3 _defBongosLFScale = Vector3.one;
+		private Vector3 _defBongosRScale = Vector3.one;
 
 		private BongoCat.Multiplayer.AfkDetector _afkDetector;
 		private FieldInfo _fIsAfk;
@@ -1320,19 +1324,36 @@ namespace BongoCatCustomSkins {
 						bongosR.color = new Color(1f, 1f, 1f, bAlpha);
 					}
 
-					if (bongosLB != null && bongosLB.transform.parent != null) {
-						RectTransform bongosParentRect = bongosLB.transform.parent as RectTransform;
-						if (bongosParentRect != null) {
-							if (!_hasDefaultBongosTransform) {
-								_defaultBongosAnchoredPos = bongosParentRect.anchoredPosition;
-								_defaultBongosScale = bongosParentRect.localScale;
-								_hasDefaultBongosTransform = true;
-							}
-
-							float bScale = curOffsets.bongosScale > 0f ? curOffsets.bongosScale : DefaultScale;
-							bongosParentRect.anchoredPosition = _defaultBongosAnchoredPos + new Vector2(curOffsets.bongosOffsetX, curOffsets.bongosOffsetY);
-							bongosParentRect.localScale = new Vector3(_defaultBongosScale.x * bScale, _defaultBongosScale.y * bScale, _defaultBongosScale.z);
+					if (!_hasDefaultBongosTransform) {
+						if (bongosLB != null) {
+							_defBongosLBPos = bongosLB.rectTransform.anchoredPosition;
+							_defBongosLBScale = bongosLB.rectTransform.localScale;
 						}
+						if (bongosLF != null) {
+							_defBongosLFPos = bongosLF.rectTransform.anchoredPosition;
+							_defBongosLFScale = bongosLF.rectTransform.localScale;
+						}
+						if (bongosR != null) {
+							_defBongosRPos = bongosR.rectTransform.anchoredPosition;
+							_defBongosRScale = bongosR.rectTransform.localScale;
+						}
+						_hasDefaultBongosTransform = true;
+					}
+
+					Vector2 bOffset = new Vector2(curOffsets.bongosOffsetX, curOffsets.bongosOffsetY);
+					float bScale = curOffsets.bongosScale > 0f ? curOffsets.bongosScale : DefaultScale;
+
+					if (bongosLB != null) {
+						bongosLB.rectTransform.anchoredPosition = _defBongosLBPos + bOffset;
+						bongosLB.rectTransform.localScale = new Vector3(_defBongosLBScale.x * bScale, _defBongosLBScale.y * bScale, _defBongosLBScale.z);
+					}
+					if (bongosLF != null) {
+						bongosLF.rectTransform.anchoredPosition = _defBongosLFPos + bOffset;
+						bongosLF.rectTransform.localScale = new Vector3(_defBongosLFScale.x * bScale, _defBongosLFScale.y * bScale, _defBongosLFScale.z);
+					}
+					if (bongosR != null) {
+						bongosR.rectTransform.anchoredPosition = _defBongosRPos + bOffset;
+						bongosR.rectTransform.localScale = new Vector3(_defBongosRScale.x * bScale, _defBongosRScale.y * bScale, _defBongosRScale.z);
 					}
 
 					bool isSleeping = false;
@@ -1436,26 +1457,34 @@ namespace BongoCatCustomSkins {
 					}
 
 					Image bongosLB = _fBongosLeftBack != null ? (Image)_fBongosLeftBack.GetValue(cat) : null;
-					if (bongosLB != null && bongosLB.transform.parent != null) {
+					Image bongosLF = _fBongosLeftFront != null ? (Image)_fBongosLeftFront.GetValue(cat) : null;
+					Image bongosR = _fBongosRight != null ? (Image)_fBongosRight.GetValue(cat) : null;
+
+					if (bongosLB != null) {
 						if (!bongosLB.gameObject.activeSelf) bongosLB.gameObject.SetActive(true);
 						bongosLB.color = Color.white;
-						RectTransform bongosParentRect = bongosLB.transform.parent as RectTransform;
-						if (bongosParentRect != null && _hasDefaultBongosTransform) {
-							bongosParentRect.anchoredPosition = _defaultBongosAnchoredPos;
-							bongosParentRect.localScale = _defaultBongosScale;
+						if (_hasDefaultBongosTransform) {
+							bongosLB.rectTransform.anchoredPosition = _defBongosLBPos;
+							bongosLB.rectTransform.localScale = _defBongosLBScale;
 						}
 					}
 
-					Image bongosLF = _fBongosLeftFront != null ? (Image)_fBongosLeftFront.GetValue(cat) : null;
 					if (bongosLF != null) {
 						if (!bongosLF.gameObject.activeSelf) bongosLF.gameObject.SetActive(true);
 						bongosLF.color = Color.white;
+						if (_hasDefaultBongosTransform) {
+							bongosLF.rectTransform.anchoredPosition = _defBongosLFPos;
+							bongosLF.rectTransform.localScale = _defBongosLFScale;
+						}
 					}
 
-					Image bongosR = _fBongosRight != null ? (Image)_fBongosRight.GetValue(cat) : null;
 					if (bongosR != null) {
 						if (!bongosR.gameObject.activeSelf) bongosR.gameObject.SetActive(true);
 						bongosR.color = Color.white;
+						if (_hasDefaultBongosTransform) {
+							bongosR.rectTransform.anchoredPosition = _defBongosRPos;
+							bongosR.rectTransform.localScale = _defBongosRScale;
+						}
 					}
 				}
 			} catch (Exception ex) {

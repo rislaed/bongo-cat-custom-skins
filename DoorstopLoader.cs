@@ -63,7 +63,6 @@ namespace Doorstop {
 		private const uint TimerElapseMs = 100;
 		private const int MaxWaitTicks = 300;
 		private const string DoorstopProcessPathEnv = "DOORSTOP_PROCESS_PATH";
-		private const string DoorstopInvokeDllPathEnv = "DOORSTOP_INVOKE_DLL_PATH";
 		private const string BongoCatExe = "BongoCat.exe";
 		private const string AssemblyCSharpName = "Assembly-CSharp";
 		private const string DllExtension = ".dll";
@@ -173,9 +172,6 @@ namespace Doorstop {
 				if (!File.Exists(preloader)) return;
 
 				Log("[DoorstopLoader] Detected BepInEx preloader at " + preloader + ". Chaining invocation...");
-				try {
-					Environment.SetEnvironmentVariable(DoorstopInvokeDllPathEnv, preloader);
-				} catch {}
 				Assembly asm = Assembly.LoadFrom(preloader);
 				if (asm == null) return;
 
