@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+		<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+		<ProjectGuid>{8E57F89B-4D12-4E4E-A2E1-9A5A6C58B3F2}</ProjectGuid>
+		<OutputType>Library</OutputType>
+		<AppDesignerFolder>Properties</AppDesignerFolder>
+		<RootNamespace>Doorstop</RootNamespace>
+		<AssemblyName>DoorstopLoader</AssemblyName>
+		<TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+		<FileAlignment>512</FileAlignment>
+		<OutputPath>$(MSBuildProjectDirectory)\</OutputPath>
+		<NoStdLib>true</NoStdLib>
+		<ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DebugSymbols>false</DebugSymbols>
+		<DebugType>none</DebugType>
+		<Optimize>false</Optimize>
+		<OutputPath>$(MSBuildProjectDirectory)\</OutputPath>
+		<DefineConstants>DEBUG;TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DebugSymbols>false</DebugSymbols>
+		<DebugType>none</DebugType>
+		<Optimize>true</Optimize>
+		<OutputPath>$(MSBuildProjectDirectory)\</OutputPath>
+		<DefineConstants>TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+	</PropertyGroup>
+	<ItemDefinitionGroup>
+		<Reference>
+			<Private>False</Private>
+		</Reference>
+	</ItemDefinitionGroup>
+	<ItemGroup>
+		<Reference Include="mscorlib" />
+		<Reference Include="System" />
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Include="DoorstopLoader.cs" />
+	</ItemGroup>
+	<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

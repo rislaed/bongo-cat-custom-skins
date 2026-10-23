@@ -1,0 +1,10 @@
+{
+	"name": "Bovicoon Romi",
+	"displayName": "Romi",
+	"description": "Chimera C-4, which species is also known as Procyon nivalis.",
+	"invertIdleAndBothPunch": false,
+	"fullBody": true,
+	"hatOffsetX": -20.0,
+	"hatOffsetY": 6.0,
+	"hatScale": 0.70
+}
