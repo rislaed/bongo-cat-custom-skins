@@ -116,6 +116,9 @@ namespace BongoCatCustomSkins {
 		private const ushort DefaultItemQuantity = 1;
 		private const ushort DefaultItemFlags = 0;
 		private const float DefaultScale = 1f;
+		private const float SimultaneousTapThresholdSeconds = 0.06f;
+		private const float UnsetTapTimestamp = -100f;
+		private const int MultiTapThreshold = 2;
 		private const int IdPrefixLength = 5;
 
 		private const string SuffixIcon = "Icon";
@@ -166,6 +169,7 @@ namespace BongoCatCustomSkins {
 		private FieldInfo _fRoutineRight;
 		private FieldInfo _fBodyImage;
 		private FieldInfo _fRightPawImage;
+		private FieldInfo _fRightPawPunchImage;
 		private FieldInfo _fHatImage;
 		private FieldInfo _fHatObject;
 		private FieldInfo _fBongosLeftBack;
@@ -174,6 +178,14 @@ namespace BongoCatCustomSkins {
 		private FieldInfo _fLocallyEquipped;
 		private MethodInfo _mEquip;
 		private MethodInfo _mUnequip;
+		private MethodInfo _mShowLeftPunch;
+		private MethodInfo _mShowRightPunch;
+		private MethodInfo _mCatHitLeft;
+		private MethodInfo _mCatHitRight;
+		private float _lastLeftTapTime = UnsetTapTimestamp;
+		private float _lastRightTapTime = UnsetTapTimestamp;
+		private bool _wasLeftPunching = false;
+		private bool _wasRightPunching = false;
 		private FieldInfo _fDisabledOverlay;
 		private readonly HashSet<int> _forceDisabledItemIds = new HashSet<int>();
 
@@ -212,11 +224,16 @@ namespace BongoCatCustomSkins {
 				_fRoutineRight = catType.GetField("_routineRight", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fBodyImage = catType.GetField("_bodyImage", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fRightPawImage = catType.GetField("_rightPawImage", BindingFlags.NonPublic | BindingFlags.Instance);
+				_fRightPawPunchImage = catType.GetField("_rightPawPunchImage", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fHatImage = catType.GetField("_hatImage", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fHatObject = catType.GetField("_hatObject", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fBongosLeftBack = catType.GetField("_bongosLeftBackImage", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fBongosLeftFront = catType.GetField("_bongosLeftFrontImage", BindingFlags.NonPublic | BindingFlags.Instance);
 				_fBongosRight = catType.GetField("_bongosRightImage", BindingFlags.NonPublic | BindingFlags.Instance);
+				_mShowLeftPunch = catType.GetMethod("ShowLeftPunch", BindingFlags.NonPublic | BindingFlags.Instance);
+				_mShowRightPunch = catType.GetMethod("ShowRightPunch", BindingFlags.NonPublic | BindingFlags.Instance);
+				_mCatHitLeft = catType.GetMethod("CatHitLeft", BindingFlags.NonPublic | BindingFlags.Instance);
+				_mCatHitRight = catType.GetMethod("CatHitRight", BindingFlags.NonPublic | BindingFlags.Instance);
 
 				_fLocallyEquipped = typeof(BongoCat.CatCosmetics).GetField("_locallyEquippedItems", BindingFlags.NonPublic | BindingFlags.Instance);
 				_mEquip = typeof(BongoCat.CatCosmetics).GetMethod("Equip", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -951,12 +968,50 @@ namespace BongoCatCustomSkins {
 						pawMde.onMouseDown.AddListener(OnCatPatted);
 					}
 
+					Image rightPawPunch = _fRightPawPunchImage != null ? (Image)_fRightPawPunchImage.GetValue(cat) : null;
+					if (rightPawPunch != null) {
+						BongoCat.MouseDownEvent pawPunchMde = rightPawPunch.GetComponent<BongoCat.MouseDownEvent>();
+						if (pawPunchMde == null) {
+							pawPunchMde = rightPawPunch.gameObject.AddComponent<BongoCat.MouseDownEvent>();
+						}
+						if (pawPunchMde.onMouseDown == null) {
+							pawPunchMde.onMouseDown = new UnityEngine.Events.UnityEvent();
+						}
+						pawPunchMde.onMouseDown.AddListener(OnCatPatted);
+					}
+
+					cat.OnTap.AddListener((amount) => {
+						if (amount >= MultiTapThreshold) {
+							TriggerBothPunch(cat);
+						}
+					});
+
 					_eventsHooked = true;
 					Logger.LogInfo("CustomSkins", "Hooked into Cat MouseDownEvents for joy reactions!");
 				}
 			} catch (Exception ex) {
 				Logger.LogError("CustomSkins", "Error in HookGameEvents: " + ex.ToString());
 			}
+		}
+
+		private void TriggerBothPunch(BongoCat.Cat cat) {
+			if (cat == null || !cat.gameObject.activeInHierarchy) return;
+			try {
+				if (_fRoutineLeft != null && _fRoutineLeft.GetValue(cat) == null && _mShowLeftPunch != null && _mCatHitLeft != null) {
+					_mShowLeftPunch.Invoke(cat, new object[] { true });
+					IEnumerator leftEnum = (IEnumerator)_mCatHitLeft.Invoke(cat, null);
+					if (leftEnum != null) {
+						_fRoutineLeft.SetValue(cat, cat.StartCoroutine(leftEnum));
+					}
+				}
+				if (_fRoutineRight != null && _fRoutineRight.GetValue(cat) == null && _mShowRightPunch != null && _mCatHitRight != null) {
+					_mShowRightPunch.Invoke(cat, new object[] { true });
+					IEnumerator rightEnum = (IEnumerator)_mCatHitRight.Invoke(cat, null);
+					if (rightEnum != null) {
+						_fRoutineRight.SetValue(cat, cat.StartCoroutine(rightEnum));
+					}
+				}
+			} catch {}
 		}
 
 		private void OnCatPatted() {
@@ -1276,6 +1331,19 @@ namespace BongoCatCustomSkins {
 						}
 					}
 
+					Image rightPawPunch = _fRightPawPunchImage != null ? (Image)_fRightPawPunchImage.GetValue(cat) : null;
+					if (rightPawPunch != null) {
+						if (!rightPawPunch.gameObject.activeSelf) {
+							rightPawPunch.gameObject.SetActive(true);
+						}
+						rightPawPunch.raycastTarget = true;
+						if (activeSkin.Config.fullBody) {
+							rightPawPunch.color = Color.clear;
+						} else {
+							rightPawPunch.color = _isBongosDragModeEnabled ? new Color(1f, 1f, 1f, bodyPulseAlpha) : Color.white;
+						}
+					}
+
 					Image bodyImage = _fBodyImage != null ? (Image)_fBodyImage.GetValue(cat) : null;
 					if (bodyImage != null) {
 						bodyImage.raycastTarget = true;
@@ -1377,14 +1445,34 @@ namespace BongoCatCustomSkins {
 						bothPunchSprite = activeSkin.SpriteBothPunch != null ? activeSkin.SpriteBothPunch : activeSkin.SpriteLeft;
 					}
 
-					bool leftPunch = false;
-					bool rightPunch = false;
-
-					if (_fRoutineLeft != null && _fRoutineLeft.GetValue(cat) != null) {
-						leftPunch = true;
+					bool leftPunch = (_fRoutineLeft != null && _fRoutineLeft.GetValue(cat) != null);
+					if (!leftPunch && _fBongosLeftBack != null) {
+						Image bongosLBImg = (Image)_fBongosLeftBack.GetValue(cat);
+						if (bongosLBImg != null && bongosLBImg.enabled) {
+							leftPunch = true;
+						}
 					}
-					if (_fRoutineRight != null && _fRoutineRight.GetValue(cat) != null) {
+
+					bool rightPunch = (_fRoutineRight != null && _fRoutineRight.GetValue(cat) != null);
+					if (!rightPunch && rightPawPunch != null && rightPawPunch.enabled) {
 						rightPunch = true;
+					}
+
+					if (leftPunch && !_wasLeftPunching) {
+						_lastLeftTapTime = Time.realtimeSinceStartup;
+					}
+					_wasLeftPunching = leftPunch;
+
+					if (rightPunch && !_wasRightPunching) {
+						_lastRightTapTime = Time.realtimeSinceStartup;
+					}
+					_wasRightPunching = rightPunch;
+
+					bool isBothPunch = (leftPunch && rightPunch) || (Mathf.Abs(_lastLeftTapTime - _lastRightTapTime) < SimultaneousTapThresholdSeconds && (leftPunch || rightPunch));
+
+					if (!leftPunch && !rightPunch) {
+						_lastLeftTapTime = UnsetTapTimestamp;
+						_lastRightTapTime = UnsetTapTimestamp;
 					}
 
 					bool isPunching = (leftPunch || rightPunch);
@@ -1404,17 +1492,24 @@ namespace BongoCatCustomSkins {
 						_petTimer = 0f;
 					}
 
-					if (!activeSkin.Config.fullBody && rightPaw != null) {
-						if (rightPunch && activeSkin.SpriteRightPunch != null) {
-							rightPaw.sprite = activeSkin.SpriteRightPunch;
-						} else if (activeSkin.SpriteRight != null) {
-							rightPaw.sprite = activeSkin.SpriteRight;
+					if (!activeSkin.Config.fullBody) {
+						if (rightPawPunch != null && rightPaw != null) {
+							rightPaw.sprite = activeSkin.SpriteRight != null ? activeSkin.SpriteRight : activeSkin.SpriteRightPunch;
+							rightPawPunch.sprite = activeSkin.SpriteRightPunch != null ? activeSkin.SpriteRightPunch : activeSkin.SpriteRight;
+						} else if (rightPawPunch != null) {
+							rightPawPunch.sprite = activeSkin.SpriteRightPunch != null ? activeSkin.SpriteRightPunch : activeSkin.SpriteRight;
+						} else if (rightPaw != null) {
+							if (rightPunch && activeSkin.SpriteRightPunch != null) {
+								rightPaw.sprite = activeSkin.SpriteRightPunch;
+							} else if (activeSkin.SpriteRight != null) {
+								rightPaw.sprite = activeSkin.SpriteRight;
+							}
 						}
 					}
 
 					Sprite targetSprite = idleSprite;
 
-					if (leftPunch && rightPunch && bothPunchSprite != null) {
+					if (isBothPunch && bothPunchSprite != null) {
 						targetSprite = bothPunchSprite;
 					} else if (leftPunch && activeSkin.SpriteLeftPunch != null) {
 						targetSprite = activeSkin.SpriteLeftPunch;
@@ -1440,6 +1535,11 @@ namespace BongoCatCustomSkins {
 						if (rightPaw != null) {
 							rightPaw.color = Color.white;
 							rightPaw.gameObject.SetActive(true);
+						}
+						Image rightPawPunch = _fRightPawPunchImage != null ? (Image)_fRightPawPunchImage.GetValue(cat) : null;
+						if (rightPawPunch != null) {
+							rightPawPunch.color = Color.white;
+							rightPawPunch.gameObject.SetActive(true);
 						}
 						_wasCustomActive = false;
 					}
